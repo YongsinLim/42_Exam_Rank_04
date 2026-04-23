@@ -1,0 +1,123 @@
+Common signals
+  ┌─────────┬────────┬───────────────────────────────┐
+  │ Signal  │ Number │            Meaning            │
+  ├─────────┼────────┼───────────────────────────────┤
+  │ SIGTERM │ 15     │ Polite request to terminate   │
+  ├─────────┼────────┼───────────────────────────────┤
+  │ SIGKILL │ 9      │ Force kill (cannot be caught) │
+  ├─────────┼────────┼───────────────────────────────┤
+  │ SIGSEGV │ 11     │ Segfault — bad memory access  │
+  ├─────────┼────────┼───────────────────────────────┤
+  │ SIGABRT │ 6      │ Abort — called by abort()     │
+  ├─────────┼────────┼───────────────────────────────┤
+  │ SIGALRM │ 14     │ Alarm timer expired           │
+  ├─────────┼────────┼───────────────────────────────┤
+  │ SIGINT  │ 2      │ Ctrl+C                        │
+  └─────────┴────────┴───────────────────────────────┘
+
+----------------------------------------------------------------------------------------
+int kill(pid_t pid, int sig);
+pid: The target process ID
+sig: The signal to be sent (e.g., SIGKILL, SIGTERM).
+
+----------------------------------------------------------------------------------------
+unsigned int alarm(unsigned int seconds);
+Behavior: Schedule a SIGALRM signal to be sent to the process after the given number of seconds.
+Cancellation: Call alarm(0) cancels any previously set alarm.
+e.g.   alarm(5);   // send SIGALRM to this process after 5 seconds
+
+----------------------------------------------------------------------------------------
+Exit status after waitpid
+  // Did child exit normally? (called exit() or returned)
+  if (WIFEXITED(status))
+      int exit_code = WEXITSTATUS(status);   // get exit code
+
+  // Was child killed by a signal?
+  if (WIFSIGNALED(status))
+      int sig = WTERMSIG(status);       // get which signal killed it
+
+  // Was child stopped by a signal? (WIFSTOPPED)
+  if (WIFSTOPPED(status))
+      int sig = WSTOPSIG(status);       // get which signal stopped it
+
+----------------------------------------------------------------------------------------
+
+ sigaction — set up a signal handler
+  Tells the process: "when signal X arrives, call this function"
+
+int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact);
+signum: The signal you want to handle (e.g., SIGINT, SIGTERM).
+act: A pointer to a structure defining the new behavior.
+oldact: A pointer where the previous behavior will be stored (optional, can be NULL).
+
+struct sigaction Structure
+sa_handler: A pointer to your signal handler function (e.g., void alarm_handler(int signum))
+            or constants like SIG_IGN (ignore) or SIG_DFL (default).
+sa_mask: A set of signals to be blocked only while the handler is running, preventing nested
+            interruptions.
+sa_flags: Bitwise flags to modify behavior, such as:
+SA_RESTART:
+Automatically restarts certain system calls (like read or write) if they are
+interrupted by the signal.
+SA_SIGINFO:
+Allows the handler to receive more detailed info via an alternate sa_sigaction member.
+
+sa_sigaction: An alternate handler used if SA_SIGINFO is set, providing three arguments: the
+            signal number, a siginfo_t pointer (reason for signal), and a context pointer.
+
+  sigaction(SIGALRM, &sa, NULL) — register it with the OS, tells the OS: "for SIGALRM, use these settings from now on
+  //         ^        ^     ^
+  //         |        |     └── old handler saved here (NULL = don't care)
+  //         |        └── your new settings
+  //         └── which signal to handle
+
+----------------------------------------------------------------------------------------
+  Signal sets — blocking signals
+
+  Sometimes you want to ignore or block signals temporarily:
+  sigset_t set;             // declare the checklist (uninitialized, garbage)
+  sigemptyset(&set);        // block nothing extra, let other signals through
+  sigfillset(&set);         // block all other signals while handler runs, (all signals) → [SIGALRM, SIGSEGV, SIGKILL, ...]
+  sigaddset(&set, SIGALRM); // add one signal to set
+  sigdelset(&set, SIGALRM); // remove one signal from set
+  sigismember(&set, SIGALRM); // is signal in set? → 1 (yes) or 0 (no)
+
+  Example :
+  sigemptyset(&set)
+  set = [ _ _ _ _ _ _ _ _ ]   ← nothing
+
+  sigaddset(&set, SIGALRM)
+  set = [ _ _ _ _ SIGALRM _ _ _ ]
+
+  sigaddset(&set, SIGSEGV)
+  set = [ _ _ SIGSEGV _ SIGALRM _ _ _ ]
+
+  sigdelset(&set, SIGALRM)
+  set = [ _ _ SIGSEGV _ _ _ _ _ ]
+
+  sigismember(&set, SIGSEGV)  → 1
+  sigismember(&set, SIGALRM)  → 0
+
+Signal sets are used with sigaction to specify which signals to block while your
+  handler is running:
+
+  struct sigaction sa;
+  sa.sa_handler = my_handler;
+  sigemptyset(&sa.sa_mask);          // while handler runs, block no extra signals
+  sigaddset(&sa.sa_mask, SIGALRM);   // block SIGALRM while handler runs
+
+----------------------------------------------------------------------------------------
+  strsignal(sig) — get signal description as string
+
+  printf("%s\n", strsignal(SIGSEGV));
+  // prints: "Segmentation fault"
+
+  This is used for the verbose message:
+  "Bad function: Segmentation fault\n"
+
+----------------------------------------------------------------------------------------
+  waitpid(pid, &status, 0)         // returns when child exits or killed
+  waitpid(pid, &status, WUNTRACED) // returns when child exits, killed, OR stopped
+
+  Without WUNTRACED → WIFSTOPPED(status) never triggers
+  With    WUNTRACED → WIFSTOPPED(status) can trigger
