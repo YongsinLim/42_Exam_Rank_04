@@ -1,0 +1,112 @@
+Json struct explained
+
+  typedef struct json {
+      enum { MAP, INTEGER, STRING } type;  // what type is this?
+      union {
+          struct {
+              struct pair *data;   // array of key:value pairs
+              size_t size;         // how many pairs
+          } map;
+          int   integer;           // the number
+          char *string;            // the string (without quotes)
+      };
+  } json;
+
+  union means only one field is active at a time depending on type:
+  type = INTEGER → use .integer
+  type = STRING  → use .string
+  type = MAP     → use .map.data and .map.size
+
+----------------------------------------------------------------------------------------
+int getc(FILE *stream)
+It reads the character at the current position indicator of the stream.
+After reading, it automatically advances the stream's position indicator to the next character.
+
+int ungetc(int ch, FILE *stream)
+Useful for "peeking" at the next character.
+e.g. when reading a number, a parser might read until it hits a non-digit,
+then use ungetc to return that non-digit so another part of the program can handle it.
+
+----------------------------------------------------------------------------------------
+  Helper functions
+
+  ┌────────────────────┬───────────────────────────────────────────────────────┐
+  │      Function      │                     What it does                      │
+  ├────────────────────┼───────────────────────────────────────────────────────┤
+  │ peek(stream)       │ look at next char without consuming it                │
+  ├────────────────────┼───────────────────────────────────────────────────────┤
+  │ accept(stream, c)  │ consume char if it matches c, return 1, else return 0 │
+  ├────────────────────┼───────────────────────────────────────────────────────┤
+  │ expect(stream, c)  │ consume char or print error                           │
+  ├────────────────────┼───────────────────────────────────────────────────────┤
+  │ unexpected(stream) │ print "unexpected token" or "unexpected end of input" │
+  ├────────────────────┼───────────────────────────────────────────────────────┤
+  │ serialize(j)       │ print the json back to stdout (already complete)      │
+  ├────────────────────┼───────────────────────────────────────────────────────┤
+  │ free_json(j)       │ free all memory (already complete)                    │
+  └────────────────────┴───────────────────────────────────────────────────────┘
+
+----------------------------------------------------------------------------------------
+  pointer → use ->
+  value   → use .
+
+  dst          = pointer to json     → ->
+  dst->map     = struct value        → .
+  dst->map.data = field inside map   → done
+
+----------------------------------------------------------------------------------------
+  Call chain summary
+
+  argo
+    ├─ isdigit → parse_integer  (uses fscanf)
+    ├─ '"'     → parse_string   (reads char by char)
+    └─ '{'     → parse_map
+                   ├─ parse_string (for key)
+                   ├─ expect ':'
+                   └─ argo (recursive, for value)
+
+----------------------------------------------------------------------------------------
+  &dst->map.data[dst->map.size]
+  ^
+  └── & is here, taking address of the ARRAY ELEMENT
+
+  ---
+  Breaking it down:
+
+  dst                         // pointer to json
+  dst->map                    // the map struct inside json
+  dst->map.data               // the pair* array
+  dst->map.data[dst->map.size] // one pair element (a VALUE)
+  &dst->map.data[dst->map.size] // ADDRESS of that pair element
+
+  ---
+  Why need &?
+
+  pair *curr is a pointer — it needs an address to point to.
+
+  pair *curr = dst->map.data[dst->map.size];
+  //           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  //           this is a pair VALUE, not an address → compile error
+
+  pair *curr = &dst->map.data[dst->map.size];
+  //           ^
+  //           now it's an address → curr points to that slot ✓
+
+----------------------------------------------------------------------------------------
+  int argo(json *dst, FILE *stream)
+  //        ^^^^^^
+  //        needs a pointer
+
+  ---
+  Breaking down &current->value:
+
+  current           // pair*  (pointer to pair)
+  current->value    // json   (VALUE inside the pair)
+  &current->value   // json*  (ADDRESS of that value) ← what argo needs
+
+  ---
+  Without & — compile error:
+
+  argo(current->value, stream)
+  //   ^^^^^^^^^^^^^
+  //   passing json VALUE, but argo expects json*  → error
