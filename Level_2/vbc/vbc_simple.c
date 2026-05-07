@@ -6,7 +6,7 @@
 /*   By: yolim <yolim@student.42kl.edu.my>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/22 16:21:06 by yolim             #+#    #+#             */
-/*   Updated: 2026/04/23 11:52:14 by yolim            ###   ########.fr       */
+/*   Updated: 2026/05/07 11:34:59 by yolim            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,7 +27,8 @@ int ft_add(char **s) {
     result = ft_multiply(s);
     if (result == -1)
         return (-1);
-    while (**s == '+') {
+    while (**s == '+')  // loop every possible +
+    {
         (*s)++;
         j = ft_multiply(s);
         if (j == -1)
@@ -44,7 +45,8 @@ int ft_multiply(char **s) {
     result = ft_factor(s);
     if (result == -1)
         return (-1);
-    while (**s == '*') {
+    while (**s == '*')  // loop every possible *
+    {
         (*s)++;
         j = ft_factor(s);
         if (j == -1)
@@ -57,12 +59,14 @@ int ft_multiply(char **s) {
 int ft_factor(char **s) {
     int result;
 
-    if (isdigit(**s)) {
+    if (isdigit(**s))   // check is digit?
+    {
         result = **s - '0';
         (*s)++;
         return (result);
     }
-    if (**s == '(') {
+    if (**s == '(') // handle '('
+    {
         (*s)++;
         result = ft_add(s);
         if (result == -1)
@@ -74,7 +78,7 @@ int ft_factor(char **s) {
         (*s)++;
         return (result);
     }
-    unexpected(**s);
+    unexpected(**s);    // other wrong case
     return (-1);
 }
 
@@ -86,7 +90,8 @@ int main(int argc, char **argv)
     int result = ft_add(&s);
     if (result == -1)
         return (1);
-    if (*s != '\0') {
+    if (*s != '\0') // dont forget to check
+    {
         unexpected(*s);
         return (1);
     }
@@ -127,7 +132,7 @@ ft_factor   → highest priority, parsed last
   other → unexpected error
 
   ---
-4. Error handling — use -1 as sentinel
+4. Error handling — use -1 as sentinel (safeguard)
 
   - -1 is safe because all digits are 0-9 and only + * used → result always >= 0
   - When error found: call unexpected(), return -1
