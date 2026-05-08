@@ -6,7 +6,7 @@
 /*   By: yolim <yolim@student.42kl.edu.my>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/20 14:25:59 by yolim             #+#    #+#             */
-/*   Updated: 2026/04/20 21:07:35 by yolim            ###   ########.fr       */
+/*   Updated: 2026/05/07 16:40:03 by yolim            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,10 +25,14 @@ Data flows in one direction: written into pipe[1], read from pipe[0].
 Type 'r' — Read from the command's output
 Child process (ls)           Parent process
       stdout (fd 1)   ──pipe──►  pipe[0]  ← you read from here
+e.g.
+child printed to stdout (1) ──dup2(fd[1], 1)──> pipe write end fd[1] ──> parent reads data from fd[0]
 
 Type 'w' — Write to the command's input
 Parent process               Child process (grep)
       pipe[1]  ← you write here  ──pipe──►  stdin (fd 0)
+e.g.
+parent writes into fd[1] ──> pipe write end fd[1] ──>  ──dup2(fd[0], 0)──> child read from fd[0]
  */
 
 int ft_popen(const char *file, char *const argv[], char type) {
@@ -41,17 +45,17 @@ int ft_popen(const char *file, char *const argv[], char type) {
         return (-1);
     pid = fork();
     if (pid == -1) {
-        close(fd[0]);
-        close(fd[1]);
+        close(fd[0]);   // dont forget to close
+        close(fd[1]);   // dont forget to close
         return (-1);
     }
     if (pid == 0) {
         if (type == 'r') {
-            if (dup2(fd[1], 1) == -1)
+            if (dup2(fd[1], 1) == -1)   // dup2 write end
                 exit(1);
         }
         else {
-            if (dup2(fd[0], 0) == -1)
+            if (dup2(fd[0], 0) == -1)   // dup2 read end
                 exit(1);
         }
         close(fd[0]);
