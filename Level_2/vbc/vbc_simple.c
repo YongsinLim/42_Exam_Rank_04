@@ -6,7 +6,7 @@
 /*   By: yolim <yolim@student.42kl.edu.my>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/22 16:21:06 by yolim             #+#    #+#             */
-/*   Updated: 2026/05/07 11:34:59 by yolim            ###   ########.fr       */
+/*   Updated: 2026/05/13 17:13:14 by yolim            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,7 +67,7 @@ int ft_factor(char **s) {
     }
     if (**s == '(') // handle '('
     {
-        (*s)++;
+        (*s)++; // dont forget to move
         result = ft_add(s);
         if (result == -1)
             return (-1);
@@ -75,7 +75,7 @@ int ft_factor(char **s) {
             unexpected(**s);
             return (-1);
         }
-        (*s)++;
+        (*s)++; // dont forget to move
         return (result);
     }
     unexpected(**s);    // other wrong case
