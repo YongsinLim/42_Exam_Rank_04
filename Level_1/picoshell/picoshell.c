@@ -6,7 +6,7 @@
 /*   By: yolim <yolim@student.42kl.edu.my>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/20 17:35:31 by yolim             #+#    #+#             */
-/*   Updated: 2026/04/20 22:13:06 by yolim            ###   ########.fr       */
+/*   Updated: 2026/05/14 22:38:38 by yolim            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,6 @@ int    picoshell(char **cmds[]) {
     int     last_fd;
     int     i;
     int     status;
-    int     ret;
 
     last_fd = -1;
     i = 0;
@@ -60,17 +59,9 @@ int    picoshell(char **cmds[]) {
         }
         i++;
     }
-    ret = 0;
-    while (wait(&status) > 0) {
-        if (WIFEXITED(status) && WEXITSTATUS(status) != 0)
-            ret = 1;
-    }
-    /*
-    while(wait(NULL) > 0)
+    while(wait(&status) > 0)
         ;
     return (0);
-    */
-    return (ret);
 }
 
 /*#include <stdio.h>
